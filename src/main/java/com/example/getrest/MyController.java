@@ -1,5 +1,10 @@
 package com.example.getrest;
 
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -12,6 +17,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -21,7 +31,7 @@ public class MyController {
     @Autowired
     RestTemplate restTemplate;
     @GetMapping(value = "/getdata",produces = "application/json")
-    public List<MyMode> getData(){
+    public void getData(HttpServletResponse response) throws IOException {
         MyMode.Schema schema=new MyMode.Schema();
         schema.setCustom("customval");
         schema.setType("typeVal");
@@ -30,8 +40,30 @@ public class MyController {
         MyMode myMode=new MyMode("testId","customfield_10072","testNameVal","Source system",true,true,true,true, Arrays.asList("val1","val2","val3"),schema);
         MyMode myMode2=new MyMode("testId","testKeyval","testNameVal","untranslatedNameVal",true,true,true,true, Arrays.asList("val1","val2","val3"),schema);
         MyMode myMode3=new MyMode("testId","testKeyval","testNameVal","untranslatedNameVal",true,true,true,true, Arrays.asList("val1","val2","val3"),schema);
+      List<MyMode> mmodel= Arrays.asList(myMode,myMode2,myMode3);
+        HSSFWorkbook workbook=new HSSFWorkbook();
+        Sheet sheet= workbook.createSheet();
 
-        return Arrays.asList(myMode,myMode2,myMode3);
+        int i=0;
+      for(MyMode myMode1: mmodel){
+          Row row=sheet.createRow(i);
+          row.createCell(0).setCellValue(myMode1.id);
+          row.createCell(1).setCellValue(myMode1.key);
+          row.createCell(2).setCellValue(myMode1.name);
+          row.createCell(3).setCellValue(myMode1.untranslatedName);
+          row.createCell(4).setCellValue(myMode1.custom);
+          i++;
+      }
+        String headerKey = "Content-Disposition";
+        String headerValue = "attachment;filename=courses.xls";
+        response.setHeader(headerKey,headerValue);
+        ServletOutputStream ops = response.getOutputStream();
+        workbook.write(ops);
+        workbook.close();
+        ops.close();
+
+        response.setContentType("application/octet-stream");
+
 
     }
     @GetMapping(value = "/executedata",produces = "application/json")
